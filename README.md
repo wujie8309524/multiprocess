@@ -1,2 +1,9 @@
-# multiprocess
-php multiprocess
+php多进程
+=====
+base目录
+----
+多进程、事件相关基础
+
+example
+------
+一些实例练习
