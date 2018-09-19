@@ -1,5 +1,7 @@
 socket
+==
     可以实现不同主机进程之间通讯
+    --
 
 socket_accept() 接受一个Socket连接
 
