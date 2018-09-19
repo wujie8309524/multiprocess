@@ -1,17 +1,18 @@
-https://www.cnblogs.com/nickbai/articles/6133354.html
+https://www.cnblogs.com/nickbai/articles/6133354.html<br>
 信号量与共享内存
+===
 特点：
     IPC最快
-一、php提供两种扩展
-    1.shmop
+> 一、php提供两种扩展
+  >>  1.shmop
 
-    2.Semaphore扩展中的sem函数
+  >>  2.Semaphore扩展中的sem函数
         类似 key-value 格式
         注意：$shar_key 只能是 int 型的参数。
 
-二、信号量控制进程同步
-    类似于一把锁，访问前获取锁（获取不到则等待），访问后释放锁。
-
+> 二、信号量控制进程同步
+ >>   类似于一把锁，访问前获取锁（获取不到则等待），访问后释放锁。
+```php
 <?php
 $key=ftok(__FILE__,'t');
 
@@ -43,3 +44,4 @@ sem_acquire($fp);
 $fp2 = sem_get(fileinode(__DIR__), 1));
 sem_acquire($fp2);
 
+```
