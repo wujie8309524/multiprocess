@@ -1,9 +1,9 @@
 信号量与共享内存<br>
 ===
 https://www.cnblogs.com/nickbai/articles/6133354.html<br>
-特点：
----
-    IPC最快
+
+特点：     
+        IPC最快
 > 一、php提供两种扩展
   >>  1.shmop
 
