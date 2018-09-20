@@ -1,11 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Administrator
- * Date: 2016/12/17
- * Time: 20:59
+/*
+ * 基于libevent的简单http服务器
  */
-$socket = stream_socket_server("tcp://0.0.0.0:2000", $errno, $errstr);
+$socket = stream_socket_server("tcp://0.0.0.0:8888", $errno, $errstr);
 
 $base = event_base_new();
 $event = event_new();
@@ -17,22 +14,25 @@ event_base_loop($base);
 
 function read_cb($buffer)
 {
-    static $ct = 0;
-    $ct_last = $ct;
-    $ct_data = '';
+    $client_data = '';
     while ($read = event_buffer_read($buffer, 1024)) {
-        $ct += strlen($read);
-        $ct_data .= $read;
+        $client_data .= $read;
     }
 
-    $ct_size = ($ct - $ct_last) * 8;
-    echo "client say : " . $ct_data .PHP_EOL;
-    event_buffer_write($buffer, "Received $ct_size byte data");
+    echo "client say : " . $client_data .PHP_EOL;
+    $response = "HTTP/1.1 200 OK\r\n";
+    $response .= "Server: phphttpserver\r\n";
+    $response .= "Content-Type: text/html\r\n";
+
+    $response .= "Content-Length: 3\r\n\r\n";
+    $response .= "ok\n";
+    event_buffer_write($buffer, $response);
+
 }
 
 function write_cb($buffer)
 {
-    echo "我在打酱油 " . PHP_EOL;
+    //echo "我在打酱油 " . PHP_EOL;
 }
 
 function error_cb($buffer, $error)
