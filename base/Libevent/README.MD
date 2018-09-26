@@ -1,4 +1,7 @@
-#php libevent扩展具有很强大的功能。<br>以下摘自百度百科：
+php libevent扩展具有很强大的功能。<br>
+==
+以下摘自百度百科：
+
 
 　　Libevent 是一个用C语言编写的、轻量级的开源高性能网络库，主要有以下几个亮点：事件驱动（ event-driven），高性能;轻量级，专注于网络，不如 ACE 那么臃肿庞大；
 
@@ -6,11 +9,13 @@
 
 定时器和信号等事件；注册事件优先级。
 
-##安装：
+安装
+---
     1.是否已安装
     rpm -qa |grep libevent      
     目录：/usr/lib /usr/local/lib /usr/lib64
-##基本用法：
+基本用法
+--
     事件管理器内部有一个循环。
     循环阻塞在epoll/kqueue等系统调用上。
     直到一个或者一些事件发生，去处理这些事件
@@ -34,6 +39,7 @@
     5.回调函数
     function callback(){}
     
-##libevent buffer
+libevent buffer
+--
     libevent buffer 封装了read/recv等细节
     当触发读事件时，直接读取$buffer就可获取数据
