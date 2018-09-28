@@ -38,9 +38,16 @@ function ev_accept($socket, $flag, $base) {
 function ev_read($buffer, $id) {
     //3.当新连接有数据可读时，打印数据
     echo "connect id:".$id.PHP_EOL;
-    while ($read = event_buffer_read($buffer, 256)) {
-        var_dump($read);
+    while ($read = event_buffer_read($buffer, 1024)) {
+        echo $read.PHP_EOL;
     }
+    $response = "HTTP/1.1 200 OK\r\n";
+    $response .= "Server: phphttpserver\r\n";
+    $response .= "Content-Type: text/html\r\n";
+
+    $response .= "Content-Length: 3\r\n\r\n";
+    $response .= "ok\n";
+    event_buffer_write($buffer, $response);
 }
 function ev_error($buffer, $error, $id) {
     event_buffer_disable($GLOBALS['buffers'][$id], EV_READ | EV_WRITE);
