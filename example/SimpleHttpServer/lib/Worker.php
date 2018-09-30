@@ -7,20 +7,20 @@
 class Worker{
     //所有运行进程的id
     public static $workers = [];
-    //事件轮询库对象
-    public static $loop = null;
+
     //服务器socket
     public $mainSocket = null;
-    //连接的socket 主要由子进程接收
-    public $conn_socket = null;
-    //连接id
-    public static $conn_id=0;
-    //配置文件路径
-    public $config_file = null;
+    public $_sockets = [];
+
+    //事件轮询库对象
+    public $event_base = null;
+    //加入监控的事件
+    public $events = [];
+
 
     //配置属性
     public $daemon = null;
-    public $work_num = 1;
+    public $work_num = 2;
     public $onConn = null;
     public $onReceive= null;
 
@@ -105,10 +105,12 @@ class Worker{
         $mainPid = posix_getpid();
 
         //创建tcp服务器，监听8000端口
-        $this->mainSocket = stream_socket_server("tcp://0.0.0.0:8000",$errno,$errstr);
-        echo "Work is running at TCP://0.0.0.0:8000...".PHP_EOL;
+        $mainSocket = stream_socket_server("tcp://0.0.0.0:8010",$errno,$errstr);
+        echo "Work is running at TCP://0.0.0.0:8010...".PHP_EOL;
         //设置为非阻塞模式
-        stream_set_blocking($this->mainSocket,0);
+        stream_set_blocking($mainSocket,0);
+
+        $this-> mainSocket = $mainSocket;
 
         for($i=0;$i<$this->work_num;$i++){
             $this->forkOne();
@@ -123,20 +125,22 @@ class Worker{
             //1、监听连接，
             //2、处理数据，执行主进程设置的回调函数，实现相关业务逻辑
 
+            $this->event_base=event_base_new();
+            $event = event_new();
+            event_set($event,$this->mainSocket,EV_READ | EV_PERSIST, [$this,'acceptCB'], $this->event_base);
+            event_base_set($event,$this->event_base);
+            event_add($event);
+            $id = (int) $this->mainSocket;
+            $this->events[$id] = $event;
+            event_base_loop($this->event_base);
 
-            //实例化轮询库
-            self::$loop = new Libevent();
-            //添加socket监听，注册回调函数
-            self::$loop -> add ($this->mainSocket,[$this,'acceptCB']);
-            //启动事件轮询
-            self::$loop->loop();
             exit(0);
         }else{
             exit("fork error!".PHP_EOL);
         }
     }
     //子进程新连接回调
-    public function acceptCB($socket,$flag,$arg){
+    public function acceptCB($socket,$flag,$base){
         /*
          * stream_socket_accept 是从系统连接队列里面获取一个socket连接
          * 这个操作不一定成功，因为多进程运行时，可能其他进程已经把最后一个socket从队列中取出
@@ -144,19 +148,73 @@ class Worker{
          * 多进程惊群
          */
 
-        $this->conn_socket= @stream_socket_accept($socket,0);
-        if(!is_resource($this->conn_socket)) {
+        $conn_socket= @stream_socket_accept($socket,0);
+        if(!is_resource($conn_socket)) {
             return;
         }
-        self::$conn_id++;
-        $msg="Connect is build!";
-        $this->_log(posix_getpid(),self::$conn_id,$msg);
-
         //设置非阻塞
-        @stream_set_blocking($this->conn_socket,0);
+        @stream_set_blocking($conn_socket,0);
 
-        //监听新连接是否有数据到达
-        new Connect($this->conn_socket,self::$loop,self::$conn_id);
+        $id = (int) $conn_socket;
+        $this->_sockets[$id]=$conn_socket;
+
+        //将新连接描述符 托管至 libevent
+        $event = event_new();
+        event_set($event,$conn_socket,EV_READ | EV_PERSIST, [$this,'readCB'], $this->event_base);
+        event_base_set($event,$this->event_base);
+        event_add($event);
+        $this->events[$id] = $event;
+
+    }
+    public function readCB($socket,$flag,$base){
+        if(!is_resource($socket)){
+            return;
+        }
+        while(1){
+            $buffer=fread($socket,1024);
+            var_dump($buffer);
+
+            if(substr($buffer,0,3) == '' || $buffer === false){
+                //接收完成，关闭此连接
+                $this->del($socket);
+                return;
+                if((feof($socket) || !is_resource($socket)) || $buffer === false){
+                    //接收完成，关闭此连接
+                    $this->del($socket);
+                    return;
+                }
+            }else{
+                $msg ="Receive data from client: ".$buffer;
+                echo $msg.PHP_EOL;
+                $response=$this->data();
+                fwrite($socket,$response);
+
+            }
+
+        }
+
+
+    }
+    public function data(){
+        $response = "HTTP/1.1 200 OK\r\n";
+        $response .= "Server: phphttpserver\r\n";
+        $response .= "Content-Type: text/html\r\n";
+
+        $response .= "Content-Length: 3\r\n\r\n";
+        $response .= "ok\n";
+
+        return $response;
+    }
+    public function del($socket)
+    {
+        if(!is_resource($socket))
+            return;
+        $id=(int)$socket;
+        event_del($this->events[$id]);
+        unset($this->events[$id]);
+        fclose($socket);
+        unset($this->_sockets[$id]);
+
     }
     public function _log($pid,$conn_id,$msg){
         printf("Pid : %s , Conn_id : %s, Msg : %s \n",$pid,$conn_id,$msg);

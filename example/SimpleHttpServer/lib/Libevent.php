@@ -47,6 +47,7 @@ class Libevent
     //$func : 回调函数
     public function add($socket,$func)
     {
+
         if(!is_resource($socket))
             return;
 
@@ -54,8 +55,9 @@ class Libevent
         event_set($event,$socket,EV_READ | EV_PERSIST, $func, $this->base);
         event_base_set($event,$this->base);
         event_add($event);
+
         //记录事件
-        $this->events[(int)$socket] = $event;
+        $this->events[(int)$socket] = $socket;
 
     }
     public function addBuffer($socket,$func,$id){

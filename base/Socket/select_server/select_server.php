@@ -39,13 +39,53 @@ $except_socks = NULL;  // 注意 php 不支持直接将NULL作为引用传参，
 $read_socks[] = $servsock;
 while (1)
 {
-	 /* 这两个数组会被改变，所以用两个临时变量 */  
-	$tmp_reads = $read_socks;  
-	$tmp_writes = $write_socks;  
-	$count = socket_select($tmp_reads, $tmp_writes, $except_socks, NULL);  // timeout 传 NULL 会一直阻塞直到有结果返回  
+    sleep(4);
+	 /* 这两个数组会被改变，所以用两个临时变量 */
+
+    echo "======begin-======".PHP_EOL;
+    var_dump($tmp_reads);
+    echo "======BEGIN-======".PHP_EOL.PHP_EOL;
+	$tmp_reads = $read_socks;
+    /*  array(1){
+     *      resource(4) of type (Socket)
+     *  }
+     *
+     *  array(2){
+     *      resource(4) of type (Socket)
+     *      resource(5) of type (Socket)
+     *  }
+     */
+
+
+	$tmp_writes = $write_socks;
+    //$tmp_reads 传入监听的描述符，返回活跃的描述符, 没有活跃则返回空
+    //默认传入$servsock 当$servsock活跃时表示有链接到达，响应链接，并加入监控
+    //当客户端连接活跃时，表示有数据到达
+	$count = socket_select($tmp_reads, $tmp_writes, $except_socks, 4);  // timeout 传 NULL 会一直阻塞直到有结果返回
+
+
+    /*  新连接来时，resource(4)活跃
+     *  array(1){
+     *      resource(4) of type (Socket)
+     *  }
+     *
+     * 数据来时，resource(5)活跃
+     *  array(1){
+     *      resource(5) of type (Socket)
+     *  }
+     */
+    echo "======end=========".PHP_EOL;
+    var_dump($tmp_reads);
+    echo "======END=========".PHP_EOL.PHP_EOL;
+
+
 	 foreach ($tmp_reads as $read)  
-    {  
-  
+    {
+        //判断活跃的描述符 是否为连接描述符
+        /* array(0){
+         *  resource(4) of type (Socket)
+         * }
+         */
         if ($read == $servsock)  
         {  
             /* 有新的客户端连接请求 */  
