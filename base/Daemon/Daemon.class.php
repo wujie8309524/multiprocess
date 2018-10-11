@@ -87,7 +87,7 @@ class Daemon{
     }
     //信号处理函数
     public function signalHandler($signo){
-
+        
         switch($signo){
 
             //用户自定义信号
@@ -145,14 +145,9 @@ class Daemon{
             $this->_log($message);
         }*/
 
-        //关闭已经打开的文件描述符
-        /*fclose(STDIN);
-        fclose(STDOUT);
-        fclose(STDERR);*/
-
         $this->createPidfile();
 
-
+        $this->redirectSTD();
     }
     //单例模式，pidfile不存在，则返回真继续执行下面代码
     //pidfile存在，且正常，则提示守护进程已经启动，exit代码
@@ -200,6 +195,16 @@ class Daemon{
             posix_setgid($gid);
         }
         return $result;
+
+    }
+    public function redirectSTD(){
+        global $STDOUT,$STDERR;
+        //关闭已经打开的文件描述符
+        fclose(STDIN);
+        fclose(STDOUT);
+        fclose(STDERR);
+        $STDOUT = fopen($this->log_file,"a");
+        $STDERR = fopen($this->log_file,"a");
 
     }
 
