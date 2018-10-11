@@ -43,7 +43,7 @@ class MsgQueue{
             $this->recycle(posix_getpid(),$father_pids,"father");
         }elseif($pid ==0){
 
-            sleep(5);//休息5秒 等待父进程发送任务
+            sleep(5);//休息5秒 等待父进程发送任务  否则子孙进程收不到任务，直接退出
             $this->child();
 
         }else{
@@ -62,6 +62,7 @@ class MsgQueue{
                 while(1){
                     //MSG_IPC_NOWAIT 当队列里没有消息时，立即返回失败，如果不设置默认阻塞
                     $bool=msg_receive($this->msg_queue,0,$msg_type,1024,$message,true,MSG_IPC_NOWAIT,$error);
+                    echo "child process ".posix_getpid()." msg_receive return bool:".var_dump($bool)."\n";
                     if(!$bool){
                         echo "child process ".posix_getpid()." exit\n";
                         exit();
@@ -79,7 +80,8 @@ class MsgQueue{
         $this->recycle(posix_getpid(),$child_pids,"child");
     }
     public function father(){
-        $arr=range(1,20);
+        //父进程分配任务
+        $arr=range(1,5);
         foreach($arr as $val){
             $status=msg_send($this->msg_queue,1,$val);
             usleep(100);
