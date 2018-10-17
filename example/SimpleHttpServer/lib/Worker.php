@@ -21,6 +21,8 @@ class Worker{
     //配置属性
     public $daemon = null;
     public $work_num = 2;
+
+    public $onStart = null;
     public $onConn = null;
     public $onReceive= null;
 
@@ -124,6 +126,9 @@ class Worker{
             //子进程：
             //1、监听连接，
             //2、处理数据，执行主进程设置的回调函数，实现相关业务逻辑
+            if($this->onStart){
+                call_user_func($this->onStart,$this,posix_getpid());
+            }
 
             $this->event_base=event_base_new();
             $event = event_new();
@@ -158,6 +163,10 @@ class Worker{
         $id = (int) $conn_socket;
         $this->_sockets[$id]=$conn_socket;
 
+        if($this->onConn){
+            call_user_func($this->onConn,$this,$conn_socket,posix_getpid());
+        }
+
         //将新连接描述符 托管至 libevent
         $event = event_new();
         event_set($event,$conn_socket,EV_READ | EV_PERSIST, [$this,'readCB'], $this->event_base);
@@ -186,8 +195,13 @@ class Worker{
             }else{
                 $msg ="Receive data from client: ".$buffer;
                 echo $msg.PHP_EOL;
-                $response=$this->data();
-                fwrite($socket,$response);
+                if($this->onReceive){
+                    call_user_func($this->onReceive,$this,$buffer,posix_getpid());
+                }else{
+                    $response=$this->data();
+                    fwrite($socket,$response);
+                }
+
 
             }
 
